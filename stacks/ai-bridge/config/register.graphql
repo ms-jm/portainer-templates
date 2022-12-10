@@ -1,0 +1,236 @@
+{
+  url: "${VMS_URL}"
+  username: "${VMS_USER}"
+  password: "${VMS_PASS}"
+  scope: ""
+  apps: [ {
+    id: "3bc3c404-4e48-4e59-951d-a247aa0acf15"
+    url: "http://${EXTERNAL_HOSTNAME}:3100"
+    name: "Basic analytics"
+    description: "Using the TrafficCamNet from NVIDIA, this app will be able to detect cars, persons, bicycles and road signs and send this to a metadata topic. Also the app allows you to configure three different kinds of rules for triggering events. These are direction detection, line crossing detection and overcrowding detection. Each will if triggered send an event to an event topic."
+    metadataTopics: [ {
+      name: "objects"
+      description: "Metadata describing the detected cars, persons, bicycles and road signs"
+      metadataFormat: DEEPSTREAM_MINIMAL
+    } ]
+    eventTopics: [ {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/direction/south"
+      name: "south"
+      description: "Event triggered by object moving in the direction of south"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/direction/north"
+      name: "north"
+      description: "Event triggered by object moving in the direction of north"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/direction/east"
+      name: "east"
+      description: "Event triggered by object moving in the direction of east"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/direction/west"
+      name: "west"
+      description: "Event triggered by object moving in the direction of west"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/linecrossing/enter"
+      name: "enter"
+      description: "Event triggered when object enters area"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/linecrossing/leave"
+      name: "leave"
+      description: "Event triggered when object leaves area"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/overcrowding/occupied"
+      name: "occupied"
+      description: "Event triggered when there are no more free zones available"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "http://${EXTERNAL_HOSTNAME}:3100/overcrowding/traffic"
+      name: "traffic"
+      description: "Event triggered when more than a certain number of objects are detected within the given zones"
+      eventFormat: ANALYTICS_EVENT
+    } ]
+  }, {
+    id: "c7107546-4be9-44cf-9d99-054fb92ab336"
+    url: "https://dr.dk"
+    name: "Traffic analysis"
+    description: "Analyze traffic flow and detect unsual patterns"
+    metadataTopics: [ {
+      url: "https://tv2.dk"
+      name: "objects"
+      description: "Detected cars, bicycles and persions in traffic"
+      metadataFormat: ONVIF_ANALYTICS
+    }, {
+      url: "http://www.google.dk"
+      name: "objects"
+      description: "Detected cars, bicycles and persions in traffic"
+      metadataFormat: DEEPSTREAM_MINIMAL
+    } ]
+    eventTopics: [ {
+      url: "https://milestone.workplace.com"
+      name: "speeding"
+      description: "Speeding detection"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "https://www.flatpanels.dk/"
+      name: "trafficjam"
+      description: "Traffic jam detection"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      url: "https://www.bold.dk/tv/"
+      name: "wrongway"
+      description: "Wrong-way driving detection"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      name: "entry"
+      description: "Entry detection"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      name: "exit"
+      description: "Exit detection"
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      name: "overcrowding"
+      description: "Overcrowding detection"
+      eventFormat: ANALYTICS_EVENT
+    } ]
+  }, {
+    id: "8e9b42c7-31b9-488d-a7c0-dc594eb2d351"
+    name: "Person anonymization"
+    description: "Anonymize people in video by blurring their faces"
+    videoTopics: [ {
+      url: "https://www.dmi.dk/"
+      name: "anonymized"
+      description: "Video with blurred faces"
+      videoCodec: MJPEG
+    }, {
+      url: "https://www.youtube.com/"
+      name: "anonymized"
+      description: "Video with blurred faces"
+      videoCodec: H264
+    }, {
+      name: "anonymized"
+      description: "Video with blurred faces"
+      videoCodec: H265
+    } ]
+    metadataTopics: [ {
+      name: "faces"
+      description: "Detected faces"
+      metadataFormat: ONVIF_ANALYTICS
+    }, {
+      name: "newobjects"
+      description: "Just a test"
+      metadataFormat: ONVIF_ANALYTICS_FRAME
+    } ]
+  }, {
+    id: "d1226503-6b9c-474d-98f2-035268544710"
+    name: "Testing topics"
+    description: "Topics matching test application"
+    eventTopics: [ {
+      name: "event_grpc"
+      description: ""
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      name: "event_kafka"
+      description: ""
+      eventFormat: ANALYTICS_EVENT
+    }, {
+      name: "event_rest"
+      description: ""
+      eventFormat: ANALYTICS_EVENT
+    } ]
+    metadataTopics: [ {
+      name: "dsmin_grpc"
+      description: ""
+      metadataFormat: DEEPSTREAM_MINIMAL
+    }, {
+      name: "dsmin_kafka"
+      description: ""
+      metadataFormat: DEEPSTREAM_MINIMAL
+    }, {
+      name: "dsmin_rest"
+      description: ""
+      metadataFormat: DEEPSTREAM_MINIMAL
+    }, {
+      name: "onvif_frame_grpc"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS_FRAME
+    }, {
+      name: "onvif_frame_kafka"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS_FRAME
+    }, {
+      name: "onvif_frame_rest"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS_FRAME
+    }, {
+      name: "onvif_grpc"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS
+    }, {
+      name: "onvif_kafka"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS
+    }, {
+      name: "onvif_rest"
+      description: ""
+      metadataFormat: ONVIF_ANALYTICS
+    } ]
+    videoTopics: [ {
+      name: "h264_grpc"
+      description: ""
+      videoCodec: H264
+    }, {
+      name: "h264_rest"
+      description: ""
+      videoCodec: H264
+    }, {
+      name: "h265_grpc"
+      description: ""
+      videoCodec: H265
+    }, {
+      name: "h265_rest"
+      description: ""
+      videoCodec: H265
+    }, {
+      name: "mjpeg_grpc"
+      description: ""
+      videoCodec: MJPEG
+    }, {
+      name: "mjpeg_rest"
+      description: ""
+      videoCodec: MJPEG
+    } ]
+  } ]
+  configMaps: [ {
+    name: "my-map"
+    clear: true
+    default: false
+    properties: [ {
+      key: "my-key-1"
+      value: "my-value-2"
+    }, {
+      key: "my-key-2"
+      value: "my-value-2"
+    } ]
+  }]
+  licensors: [ {
+    id: "d95f575b-27c1-41d1-bf4e-013e7117a9b9"
+    name: "Basic analytics plug-in"
+    licenses: [ {
+      id: "3bc3c404-4e48-4e59-951d-a247aa0acf15"
+      name: "Basic analytics"
+    }]
+  }, {
+    id: "60f1f673-dc39-4367-8466-d8e901d6c149"
+    name: "Traffic analysis plug-in"
+    licenses: [ {
+      id: "c7107546-4be9-44cf-9d99-054fb92ab336"
+      name: "Traffic analysis"
+    }]
+  } ]
+}

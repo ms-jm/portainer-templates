@@ -1,0 +1,234 @@
+version: '3.2'
+services:
+  kafka-zookeeper:
+    image: packages.milestone.dev:443/rsrch-docker-dh/confluentinc/cp-zookeeper:7.2.0
+    user: "0:0"
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+
+  kafka-broker:
+    image: packages.milestone.dev:443/rsrch-docker-dh/confluentinc/cp-kafka:7.2.0
+    user: "0:0"
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: kafka-zookeeper:2181
+      KAFKA_NUM_PARTITIONS: 1 # source specific metadata topics are auto created and must exactly have one partition (to keep the order)
+      KAFKA_LOG_ROLL_MS: 60000
+      KAFKA_LOG_RETENTION_MS: 300000
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 60000
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true' # we enable this to allow for source specific metadata topics to be auto created (those that include a source stream id)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+
+  external-kafdrop:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/external-kafdrop:3.27.0
+    environment:
+      JVM_OPTS: -Xms32M -Xmx64M
+      KAFKA_BROKERCONNECT: kafka-broker:29092
+      SERVER_SERVLET_CONTEXTPATH: /
+      CMD_ARGS: --message.format=PROTOBUF --protobufdesc.directory=/var/protobuf_desc
+    ports:
+      - "9002:9000"
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+
+  external-graphdb:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/external-graphdb:9.9.1-free
+    ports:
+      - "7200:7200"
+    healthcheck:
+      test: curl -f 'http://localhost:7200/repositories/voyager/health?' || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  daim-init:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-init:ubuntu20.04
+    environment:
+      VMS_URL: ${VMS_URL}
+      VMS_USER: ${VMS_USER}
+      VMS_PASS: ${VMS_PASS}
+      EXTERNAL_HOSTNAME: ${EXTERNAL_HOSTNAME}
+    command: -brokers kafka-broker:29092
+             -topics-to-create voyager.topics.daim.gateway.config_requests:2:1,voyager.topics.daim.gateway.config_responses:2:1,voyager.topics.daim.gateway.stream_requests:2:1,voyager.topics.daim.gateway.stream_responses:2:1,voyager.topics.daim.gateway.endpoint_status:2:1,voyager.topics.daim.vmsbridge.stream_subscriptions:2:1
+             -sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             -sparql-update-endpoint http://external-graphdb:7200/repositories/voyager/statements
+             -vms-bridge-endpoint http://daim-vmsbridge-webservice:4000/api/bridge/graphql
+             -vms-bridge-registrations /root/bin/config/register.graphql
+             -network-config-file /root/bin/config/network.json
+    volumes:
+      - type: bind
+        source: ./config
+        target: /root/bin/config
+    depends_on:
+      - external-graphdb
+
+  daim-gateway-connector:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-gateway-connector:ubuntu20.04
+    command: -brokers kafka-broker:29092
+             -endpoint-status-resend-seconds 300
+             -sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             -sparql-update-endpoint http://external-graphdb:7200/repositories/voyager/statements
+             -network-config-file /root/bin/config/network.json
+    volumes:
+      - type: bind
+        source: ./certs/tls-ca
+        target: /usr/local/share/ca-certificates
+      - type: bind
+        source: ./config
+        target: /root/bin/config
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+      - external-graphdb
+
+  daim-gateway-streaming:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-gateway-streaming:ubuntu20.04
+    command: -rtsp-port 8554
+             -rtsp-rtp-udp-port 8000
+             -rtsp-rtcp-udp-port 8001
+             -webrtc-external-ip ${EXTERNAL_IP}
+             -webrtc-udp-port-range 55500
+             -webrtc-signalling-port 8555
+             -ds-port 9898
+             -brokers kafka-broker:29092
+             -sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+    ports:
+      - "8554:8554"
+      - "8555:8555"
+      - "9898:9898"
+      - "8000:8000/udp"
+      - "8001:8001/udp"
+      - "55500:55500/udp"
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           capabilities: [gpu]
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+      - external-graphdb
+
+  daim-gateway-webservice:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-gateway-webservice:ubuntu20.04
+    command: --port-number 3000
+             --gateway-graphql-subscription-port 3001
+             --graphiql-subscription-endpoint ws://${EXTERNAL_HOSTNAME}:3001/api/gateway/subscriptions
+             --brokers kafka-broker:29092
+             --sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             --sparql-update-endpoint http://external-graphdb:7200/repositories/voyager/statements
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+      - external-graphdb
+
+  daim-vmsbridge-health:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-vmsbridge-health:ubuntu20.04
+    command: -port-number 3500
+             -sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             -tls-enabled=${TLS_ENABLED:-false}
+             -tls-certificate-file certs/server.crt
+             -tls-key-file certs/server.key
+    ports:
+      - "3500:3500"
+    volumes:
+      - type: bind
+        source: ./certs/tls-server
+        target: /root/bin/certs
+    restart: unless-stopped
+    depends_on:
+      - external-graphdb
+
+  daim-vmsbridge-proxy:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-vmsbridge-proxy:ubuntu20.04
+    command: -sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             -brokers kafka-broker:29092
+             -stream-subscriptions-resend-seconds 300
+             -streaming-port 8786
+             -vps-port 8787
+             -vps-authorization=true
+             -vps-tls-enabled=${TLS_ENABLED:-false}
+             -vps-tls-certificate-file certs/server.crt
+             -vps-tls-key-file certs/server.key
+             -network-config-file /root/bin/config/network.json
+    ports:
+      - "8786:8786"
+      - "8787:8787"
+    volumes:
+      - type: bind
+        source: ./certs/tls-ca
+        target: /usr/local/share/ca-certificates
+      - type: bind
+        source: ./certs/tls-server
+        target: /root/bin/certs
+      - type: bind
+        source: ./config
+        target: /root/bin/config
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+      - external-graphdb
+
+  daim-vmsbridge-broker:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-vmsbridge-broker:ubuntu20.04
+    command: -brokers kafka-broker:29092
+             -rest-port 8382
+             -grpc-port 8383
+    ports:
+      - "8382:8382"
+      - "8383:8383"
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+
+  daim-vmsbridge-webservice:
+    image: packages.milestone.dev:443/rsrch-docker/voyager/daim-vmsbridge-webservice:ubuntu20.04
+    command: --id "${BRIDGE_ID}"
+             --name "${BRIDGE_NAME}"
+             --description "${BRIDGE_DESCRIPTION}"
+             --webpage "${BRIDGE_WEBPAGE}"
+             --port-number 4000
+             --bridge-graphql-subscription-port 4001
+             --health-endpoint ${TLS_SCHEME:-http}://${EXTERNAL_HOSTNAME}:3500/api/health/graphql
+             --vps-endpoint ${TLS_SCHEME:-http}://${EXTERNAL_HOSTNAME}:8787
+             --broker-rest-endpoint http://${EXTERNAL_HOSTNAME}:8382
+             --broker-grpc-endpoint grpc://${EXTERNAL_HOSTNAME}:8383
+             --rtsp-endpoint rtsp://${EXTERNAL_HOSTNAME}:8554
+             --webrtc-endpoint ws://${EXTERNAL_HOSTNAME}:8555
+             --ds-endpoint grpc://${EXTERNAL_HOSTNAME}:9898
+             --ds-endpoint-internal grpc://daim-gateway-streaming:9898
+             --graphiql-subscription-endpoint ws://${EXTERNAL_HOSTNAME}:4001/api/bridge/subscriptions
+             --brokers kafka-broker:29092
+             --sparql-query-endpoint http://external-graphdb:7200/repositories/voyager
+             --sparql-update-endpoint http://external-graphdb:7200/repositories/voyager/statements
+    ports:
+      - "4000:4000"
+      - "4001:4001"
+    restart: unless-stopped
+    depends_on:
+      - kafka-zookeeper
+      - kafka-broker
+      - external-graphdb

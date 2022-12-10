@@ -1,0 +1,27 @@
+{
+  "version": "2",
+  "templates": [
+    {
+      "type": 3,
+      "title": "AI Bridge",
+      "description": "Containerized SDK bridging the worlds of AI and VMS",
+      "platform": "linux",
+      "logo": "https://cdn-icons-png.flaticon.com/512/2138/2138687.png",
+      "repository": {
+        "url": "https://github.com/ms-jm/portainer-templates",
+        "stackfile": "stacks/ai-bridge/docker-compose.yml"
+      }
+    },
+    {
+      "type": 3,
+      "title": "Fall Detection",
+      "description": "Video Analytic Application that will detect people falling in a hospital environment",
+      "platform": "linux",
+      "logo": "https://bedfordmedicalalert.ca/wp-content/uploads/2018/06/Fall-Detection.png",
+      "repository": {
+        "url": "https://github.com/ms-jm/portainer-templates",
+        "stackfile": "stacks/fall-detection/docker-compose.yml"
+      }
+    }
+  ]
+}

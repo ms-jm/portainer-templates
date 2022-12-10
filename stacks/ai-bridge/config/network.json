@@ -1,0 +1,16 @@
+{
+    "tunneling-diabled": [
+        {
+            "from": "dkws-jm-02.milestone.dk:443",
+            "to": "reverse-tunnel-server:10443"
+        },
+        {
+            "from": "dkws-jm-02.milestone.dk:7563",
+            "to": "reverse-tunnel-server:17563"
+        },
+        {
+            "from": "dkws-jm-02.milestone.dk:22331",
+            "to": "reverse-tunnel-server:32331"
+        }
+    ]
+}

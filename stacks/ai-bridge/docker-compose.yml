@@ -71,7 +71,7 @@ services:
              -network-config-file /root/bin/config/network.json
     volumes:
       - type: bind
-        source: ./config
+        source: ${PWD}/config
         target: /root/bin/config
     depends_on:
       - external-graphdb
@@ -85,10 +85,10 @@ services:
              -network-config-file /root/bin/config/network.json
     volumes:
       - type: bind
-        source: ./certs/tls-ca
+        source: ${PWD}/certs/tls-ca
         target: /usr/local/share/ca-certificates
       - type: bind
-        source: ./config
+        source: ${PWD}/config
         target: /root/bin/config
     restart: unless-stopped
     depends_on:
@@ -154,7 +154,7 @@ services:
       - "3500:3500"
     volumes:
       - type: bind
-        source: ./certs/tls-server
+        source: ${PWD}/certs/tls-server
         target: /root/bin/certs
     restart: unless-stopped
     depends_on:
@@ -177,13 +177,13 @@ services:
       - "8787:8787"
     volumes:
       - type: bind
-        source: ./certs/tls-ca
+        source: ${PWD}/certs/tls-ca
         target: /usr/local/share/ca-certificates
       - type: bind
-        source: ./certs/tls-server
+        source: ${PWD}/certs/tls-server
         target: /root/bin/certs
       - type: bind
-        source: ./config
+        source: ${PWD}/config
         target: /root/bin/config
     restart: unless-stopped
     depends_on:
